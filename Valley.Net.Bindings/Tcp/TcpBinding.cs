@@ -103,8 +103,6 @@ namespace Valley.Net.Bindings.Tcp
         {
             var state = e.UserToken as OrderedAsyncState;
 
-            state.ReceiveAsync(e);
-
             Debug.WriteLine($"state: {state.GetHashCode()}, socket: {e.AcceptSocket.GetHashCode()}");
 
             try
@@ -142,6 +140,8 @@ namespace Valley.Net.Bindings.Tcp
             finally
             {
                 OnIoCompleted(e);
+
+                state.ReceiveAsync(e);
             }
         }
     }

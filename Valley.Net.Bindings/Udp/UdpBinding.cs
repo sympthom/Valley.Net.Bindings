@@ -98,8 +98,6 @@ namespace Valley.Net.Bindings.Udp
         {
             var state = e.UserToken as OrderedAsyncState;
 
-            state.ReceiveAsync(e);
-
             try
             {
                 switch (e.SocketError)
@@ -117,6 +115,8 @@ namespace Valley.Net.Bindings.Udp
 
                                         if (packet == null)
                                             return;
+
+                                        state.Clear();
 
                                         var binding = new UdpBinding(_serializer);
                                         await binding.ConnectAsync(e.RemoteEndPoint as IPEndPoint);
@@ -136,6 +136,8 @@ namespace Valley.Net.Bindings.Udp
             finally
             {
                 OnIoCompleted(e);
+
+                state.ReceiveAsync(e);
             }
         }       
     }
