@@ -15,13 +15,17 @@ namespace Valley.Net.Bindings.Serial
     {
         private readonly IPacketSerializer _serializer;
         private readonly SerialPort _serialPort;
+        public readonly Func<SerialPort, IPacketSerializer, INetworkPacket> _readPort;
+        private Thread _readThread;
+        private volatile bool _continue = false;
 
         public event EventHandler<PacketEventArgs> PacketReceived;
 
-        public SerialBinding(IPEndPoint endpoint, IPacketSerializer serializer)
+        public SerialBinding(SerialPort serialPort, Func<SerialPort, IPacketSerializer, INetworkPacket> readPort, IPacketSerializer serializer)
         {
+            _serialPort = serialPort ?? throw new ArgumentNullException(nameof(serialPort));
+            _readPort = readPort ?? throw new ArgumentNullException(nameof(readPort));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-            _serialPort = new SerialPort();
         }
 
         public Task ConnectAsync()
@@ -29,15 +33,11 @@ namespace Valley.Net.Bindings.Serial
             if (_serialPort == null)
                 throw new NullReferenceException(nameof(_serialPort));
 
-            // Allow the user to set the appropriate properties.
-            //_serialPort.PortName = SetPortName(_serialPort.PortName);
-            //_serialPort.BaudRate = SetPortBaudRate(_serialPort.BaudRate);
-            //_serialPort.Parity = SetPortParity(_serialPort.Parity);
-            //_serialPort.DataBits = SetPortDataBits(_serialPort.DataBits);
-            //_serialPort.StopBits = SetPortStopBits(_serialPort.StopBits);
-            //_serialPort.Handshake = SetPortHandshake(_serialPort.Handshake);
-
             _serialPort.Open();
+            _continue = _serialPort.IsOpen;
+
+            _readThread = new Thread(Read);
+            _readThread.Start();
 
             return Task.CompletedTask;
         }
@@ -48,6 +48,9 @@ namespace Valley.Net.Bindings.Serial
                 throw new NullReferenceException(nameof(_serialPort));
 
             _serialPort.Close();
+            _continue = _serialPort.IsOpen;
+
+            _readThread.Join();
 
             return Task.CompletedTask;
         }
@@ -62,6 +65,9 @@ namespace Valley.Net.Bindings.Serial
 
             if (_serialPort == null)
                 throw new NullReferenceException(nameof(_serialPort));
+
+            if (!_serialPort.IsOpen)
+                throw new Exception("Serial port is not open.");
 
             using (var stream = new MemoryStream())
             {
@@ -78,7 +84,37 @@ namespace Valley.Net.Bindings.Serial
             if (_serialPort == null)
                 throw new NullReferenceException(nameof(_serialPort));
 
+            _serialPort.Open();
+            _continue = _serialPort.IsOpen;
+
+            _readThread = new Thread(Read);
+            _readThread.Start();
+
             return _serialPort.IsOpen;
+        }
+
+        private void Read()
+        {
+            if (_readPort == null)
+                throw new NullReferenceException(nameof(_readPort));
+
+            if (_serializer == null)
+                throw new NullReferenceException(nameof(_serializer));
+
+            while (_continue)
+            {
+                var packet = _readPort(_serialPort, _serializer);
+
+                if (packet == null)
+                    continue;
+
+                OnPacketReceived(new PacketEventArgs(packet, this));
+            }
+        }
+
+        private void OnPacketReceived(PacketEventArgs e)
+        {
+            PacketReceived?.Invoke(this, e);
         }
     }
 }
