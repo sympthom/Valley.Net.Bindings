@@ -17,16 +17,15 @@ namespace Valley.Net.Bindings.Udp
 
         }
 
-        public UdpBinding(IPacketSerializer serializer) : 
+        public UdpBinding(IPEndPoint endpoint, IPacketSerializer serializer) : 
             this(new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp), serializer)
         {
+            _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
             _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
         }
 
-        public Task ConnectAsync(IPEndPoint endpoint)
+        public Task ConnectAsync()
         {
-            _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
-
             return Task.CompletedTask;
         }
 
@@ -73,11 +72,11 @@ namespace Valley.Net.Bindings.Udp
             }
         }
 
-        public bool ListenAsync(IPEndPoint endpoint)
+        public bool ListenAsync()
         {
             var state = new OrderedAsyncState();
             state.Client = _socket;
-            state.ReadEventArgs.RemoteEndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint)); // used to bind
+            state.ReadEventArgs.RemoteEndPoint = _endpoint ?? throw new ArgumentNullException(nameof(_endpoint)); // used to bind
             state.ReadEventArgs.SetBuffer(new byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
             state.ReadEventArgs.AcceptSocket = _socket;
             state.ReadEventArgs.UserToken = state;
@@ -89,7 +88,7 @@ namespace Valley.Net.Bindings.Udp
                 return e.AcceptSocket.ReceiveFromAsync(e);
             };
 
-            _socket.Bind(endpoint);
+            _socket.Bind(_endpoint);
 
             return _socket.ReceiveFromAsync(state.ReadEventArgs);
         }
@@ -118,8 +117,8 @@ namespace Valley.Net.Bindings.Udp
 
                                         state.Clear();
 
-                                        var binding = new UdpBinding(_serializer);
-                                        await binding.ConnectAsync(e.RemoteEndPoint as IPEndPoint);
+                                        var binding = new UdpBinding(e.RemoteEndPoint as IPEndPoint, _serializer);
+                                        await binding.ConnectAsync();
 
                                         OnPacketReceived(new PacketEventArgs(packet, binding));
                                     }

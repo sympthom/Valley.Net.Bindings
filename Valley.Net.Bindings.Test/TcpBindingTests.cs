@@ -18,7 +18,7 @@ namespace Valley.Net.Bindings.Test
             var serverReceivedEvent = new AutoResetEvent(false);
             var clientReceivedEvent = new AutoResetEvent(false);
 
-            var server = new TcpBinding(new TestSerializer());
+            var server = new TcpBinding(new IPEndPoint(IPAddress.Any, 1800), new TestSerializer());
             server.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             server.PacketReceived += async (sender, e) =>
             {
@@ -27,15 +27,15 @@ namespace Valley.Net.Bindings.Test
                 await e.Binding.SendAsync(e.Packet);
             };
 
-            var result = server.ListenAsync(new IPEndPoint(IPAddress.Any, 1800));
+            var result = server.ListenAsync();
 
             Assert.IsTrue(result);
 
-            var client = new TcpBinding(new TestSerializer());
+            var client = new TcpBinding(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1800), new TestSerializer());
             client.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             client.PacketReceived += (sender, e) => clientReceivedEvent.Set();
 
-            await client.ConnectAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1800));
+            await client.ConnectAsync();
 
             await client.SendAsync(new TestPacket());
 
@@ -49,21 +49,21 @@ namespace Valley.Net.Bindings.Test
         {
             var serverErrorEvent = new AutoResetEvent(false);
 
-            var server = new TcpBinding(new ExceptionSerializer());
+            var server = new TcpBinding(new IPEndPoint(IPAddress.Any, 1801), new ExceptionSerializer());
             server.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             server.Error += (sender, e) =>
             {
                 serverErrorEvent.Set();
             };
 
-            var result = server.ListenAsync(new IPEndPoint(IPAddress.Any, 1801));
+            var result = server.ListenAsync();
 
             Assert.IsTrue(result);
 
-            var client = new TcpBinding(new TestSerializer());
+            var client = new TcpBinding(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1801), new TestSerializer());
             client.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
 
-            await client.ConnectAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1801));
+            await client.ConnectAsync();
 
             await client.SendAsync(new TestPacket());
 

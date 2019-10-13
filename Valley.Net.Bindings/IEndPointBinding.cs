@@ -10,9 +10,9 @@ namespace Valley.Net.Bindings
     {
         event EventHandler<PacketEventArgs> PacketReceived;
 
-        bool ListenAsync(IPEndPoint endpoint);
+        bool ListenAsync();
 
-        Task ConnectAsync(IPEndPoint endpoint);
+        Task ConnectAsync();
 
         Task SendAsync(INetworkPacket packet);
 

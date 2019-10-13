@@ -18,7 +18,7 @@ namespace Valley.Net.Bindings.Test
             var serverReceivedEvent = new AutoResetEvent(false);
             var clientReceivedEvent = new AutoResetEvent(false);
             
-            var server = new UdpBinding(new TestSerializer());
+            var server = new UdpBinding(new IPEndPoint(IPAddress.Any, 1700), new TestSerializer());
             server.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             server.PacketReceived += async (sender, e) =>
             {
@@ -27,15 +27,15 @@ namespace Valley.Net.Bindings.Test
                 await e.Binding.SendAsync(e.Packet);
             };
 
-            var result = server.ListenAsync(new IPEndPoint(IPAddress.Any, 1700));
+            var result = server.ListenAsync();
 
             Assert.IsTrue(result);
 
-            var client = new UdpBinding(new TestSerializer());
+            var client = new UdpBinding(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1700), new TestSerializer());
             client.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             client.PacketReceived += (sender, e) => clientReceivedEvent.Set();
 
-            await client.ConnectAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1700));
+            await client.ConnectAsync();
 
             await client.SendAsync(new TestPacket());
 
@@ -49,21 +49,21 @@ namespace Valley.Net.Bindings.Test
         {
             var serverErrorEvent = new AutoResetEvent(false);
 
-            var server = new UdpBinding(new ExceptionSerializer());
+            var server = new UdpBinding(new IPEndPoint(IPAddress.Any, 1701), new ExceptionSerializer());
             server.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
             server.Error += (sender, e) =>
             {
                 serverErrorEvent.Set();
             };
 
-            var result = server.ListenAsync(new IPEndPoint(IPAddress.Any, 1701));
+            var result = server.ListenAsync();
 
             Assert.IsTrue(result);
 
-            var client = new UdpBinding(new TestSerializer());
+            var client = new UdpBinding(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1701), new TestSerializer());
             client.IoCompleted += (sender, e) => Debug.WriteLine(e.LastOperation);
 
-            await client.ConnectAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1701));
+            await client.ConnectAsync();
 
             await client.SendAsync(new TestPacket());
 

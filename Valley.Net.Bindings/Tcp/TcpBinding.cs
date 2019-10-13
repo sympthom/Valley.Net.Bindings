@@ -18,16 +18,14 @@ namespace Valley.Net.Bindings.Tcp
 
         }
 
-        public TcpBinding(IPacketSerializer serializer) :
+        public TcpBinding(IPEndPoint endpoint, IPacketSerializer serializer) :
             this(new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp), serializer)
         {
-
+            _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
         }
 
-        public Task ConnectAsync(IPEndPoint endpoint)
+        public Task ConnectAsync()
         {
-            _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
-
             if (_socket == null)
                 throw new NullReferenceException(nameof(_socket));
 
@@ -79,11 +77,9 @@ namespace Valley.Net.Bindings.Tcp
             }
         }
 
-        public bool ListenAsync(IPEndPoint endpoint)
+        public bool ListenAsync()
         {
-            _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
-
-            _socket.Bind(endpoint);
+            _socket.Bind(_endpoint);
             _socket.Listen(1);
 
             var state = new OrderedAsyncState();
