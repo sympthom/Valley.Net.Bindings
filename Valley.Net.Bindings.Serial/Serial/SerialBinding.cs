@@ -18,13 +18,13 @@ namespace Valley.Net.Bindings.Serial
 
         public event EventHandler<PacketEventArgs> PacketReceived;
 
-        public SerialBinding(IPacketSerializer serializer)
+        public SerialBinding(IPEndPoint endpoint, IPacketSerializer serializer)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _serialPort = new SerialPort();
         }
 
-        public Task ConnectAsync(IPEndPoint endpoint)
+        public Task ConnectAsync()
         {
             if (_serialPort == null)
                 throw new NullReferenceException(nameof(_serialPort));
@@ -73,7 +73,7 @@ namespace Valley.Net.Bindings.Serial
             }
         }
 
-        public bool ListenAsync(IPEndPoint endpoint)
+        public bool ListenAsync()
         {
             if (_serialPort == null)
                 throw new NullReferenceException(nameof(_serialPort));
